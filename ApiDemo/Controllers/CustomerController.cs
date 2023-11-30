@@ -1,4 +1,5 @@
-﻿using ApiDemo.Models;
+﻿using ApiDemo.Dto;
+using ApiDemo.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,16 +22,35 @@ namespace ApiDemo.Controllers
         [HttpGet]
         public IActionResult Get()
         {
-            return Ok(_context.Customers.ToList());
+            List<CustomerDTO> customerDTOs = new List<CustomerDTO>();
+            foreach (var customer in _context.Customers) 
+            {
+                CustomerDTO customerDTO = new CustomerDTO()
+                {
+                    CustomerId = customer.CustomerId,
+                    CompanyName = customer.CompanyName,
+                    Phone = customer.Phone,
+                };
+                customerDTOs.Add(customerDTO);
+            }
+
+            return Ok(customerDTOs);
         }
 
         // GET api/<CustomerController>/5
         [HttpGet("{id}")]
         public IActionResult Get(string id)
         {
-            if (!_context.Customers.Where(c => c.CustomerId == id).Any())
+            var customer = _context.Customers.Where(c => c.CustomerId == id).FirstOrDefault();
+            if (customer == null)
                 return NotFound();
-            return Ok(_context.Customers.Where(c => c.CustomerId == id).FirstOrDefault());
+            var customerDTO = new CustomerDTO()
+            {
+                CustomerId = customer.CustomerId,
+                CompanyName = customer.CompanyName,
+                Phone = customer.Phone,
+            };
+            return Ok(customerDTO);
         }
 
         // POST api/<CustomerController>
@@ -47,9 +67,6 @@ namespace ApiDemo.Controllers
                 ModelState.AddModelError("", "此 Customer 已存在");
                 return StatusCode(422, ModelState);
             }
-
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
 
             _context.Customers.Add(customerCreate);
             _context.SaveChanges();
