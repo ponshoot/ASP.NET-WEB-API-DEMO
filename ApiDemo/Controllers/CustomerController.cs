@@ -1,5 +1,6 @@
 ﻿using ApiDemo.Dto;
 using ApiDemo.Models;
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,31 +13,21 @@ namespace ApiDemo.Controllers
     public class CustomerController : ControllerBase
     {
         private readonly NorthwindContext _context;
-
-        public CustomerController(NorthwindContext context)
+        private readonly IMapper _mapper;
+        public CustomerController(NorthwindContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         // GET: api/<CustomerController>
         [HttpGet]
         public IActionResult Get(string? keyword)
         {
-            List<CustomerDTO> customerDTOs = new List<CustomerDTO>();
-            foreach (var customer in _context.Customers) 
-            {
-                if ((keyword != null)
-                    &&(!customer.CustomerId.Contains(keyword)))
-                        continue;
-                CustomerDTO customerDTO = new CustomerDTO()
-                {
-                    CustomerId = customer.CustomerId,
-                    CompanyName = customer.CompanyName,
-                    Phone = customer.Phone,
-                };
-                customerDTOs.Add(customerDTO);
-            }
-
+            var customers = (keyword == null) ?
+                _context.Customers.ToList()
+                : _context.Customers.Where(c => c.CustomerId.Contains(keyword)).ToList();
+            var customerDTOs = _mapper.Map<IEnumerable<CustomerDTO>>(customers);
             return Ok(customerDTOs);
         }
 
@@ -47,12 +38,7 @@ namespace ApiDemo.Controllers
             var customer = _context.Customers.Where(c => c.CustomerId == id).FirstOrDefault();
             if (customer == null)
                 return NotFound();
-            var customerDTO = new CustomerDTO()
-            {
-                CustomerId = customer.CustomerId,
-                CompanyName = customer.CompanyName,
-                Phone = customer.Phone,
-            };
+            var customerDTO = _mapper.Map<CustomerDTO>(customer);
             return Ok(customerDTO);
         }
 

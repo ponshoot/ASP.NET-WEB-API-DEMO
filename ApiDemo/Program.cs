@@ -13,6 +13,7 @@ builder.Services.AddDbContext<NorthwindContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("NorthwindDatabase"));
 });
+builder.Services.AddAutoMapper(typeof(Program));
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
