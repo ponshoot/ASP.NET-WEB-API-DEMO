@@ -20,11 +20,14 @@ namespace ApiDemo.Controllers
 
         // GET: api/<CustomerController>
         [HttpGet]
-        public IActionResult Get()
+        public IActionResult Get(string? keyword)
         {
             List<CustomerDTO> customerDTOs = new List<CustomerDTO>();
             foreach (var customer in _context.Customers) 
             {
+                if ((keyword != null)
+                    &&(!customer.CustomerId.Contains(keyword)))
+                        continue;
                 CustomerDTO customerDTO = new CustomerDTO()
                 {
                     CustomerId = customer.CustomerId,
@@ -39,7 +42,7 @@ namespace ApiDemo.Controllers
 
         // GET api/<CustomerController>/5
         [HttpGet("{id}")]
-        public IActionResult Get(string id)
+        public IActionResult GetById(string id)
         {
             var customer = _context.Customers.Where(c => c.CustomerId == id).FirstOrDefault();
             if (customer == null)
