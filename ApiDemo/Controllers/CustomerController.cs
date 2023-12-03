@@ -1,5 +1,6 @@
 ﻿using ApiDemo.Dto;
 using ApiDemo.Models;
+using ApiDemo.Repository;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,11 +13,11 @@ namespace ApiDemo.Controllers
     [ApiController]
     public class CustomerController : ControllerBase
     {
-        private readonly NorthwindContext _context;
+        private readonly CustomerRepository _repository;
         private readonly IMapper _mapper;
-        public CustomerController(NorthwindContext context, IMapper mapper)
+        public CustomerController(CustomerRepository repository , IMapper mapper)
         {
-            _context = context;
+            _repository = repository;
             _mapper = mapper;
         }
 
@@ -24,9 +25,7 @@ namespace ApiDemo.Controllers
         [HttpGet]
         public IActionResult Get(string? keyword)
         {
-            var customers = (keyword == null) ?
-                _context.Customers.ToList()
-                : _context.Customers.Where(c => c.CustomerId.Contains(keyword)).ToList();
+            var customers = _repository.Get(keyword);
             var customerDTOs = _mapper.Map<IEnumerable<CustomerDTO>>(customers);
             return Ok(customerDTOs);
         }
@@ -35,7 +34,7 @@ namespace ApiDemo.Controllers
         [HttpGet("{id}")]
         public IActionResult GetById(string id)
         {
-            var customer = _context.Customers.Where(c => c.CustomerId == id).FirstOrDefault();
+            var customer = _repository.GetById(id);
             if (customer == null)
                 return NotFound();
             var customerDTO = _mapper.Map<CustomerDTO>(customer);
@@ -48,7 +47,7 @@ namespace ApiDemo.Controllers
         {
             if (customerCreate == null)
                 return BadRequest();
-            var customer = _context.Customers
+            var customer = _repository.Get()
                 .Where(c => c.CustomerId.Trim().ToUpper() == customerCreate.CustomerId.Trim().ToUpper())
                 .FirstOrDefault();
             if (customer != null)
@@ -57,8 +56,7 @@ namespace ApiDemo.Controllers
                 return StatusCode(422, ModelState);
             }
 
-            _context.Customers.Add(customerCreate);
-            _context.SaveChanges();
+            _repository.Create(customerCreate);
             return Ok("成功建立");
         }
 
@@ -67,11 +65,10 @@ namespace ApiDemo.Controllers
         public IActionResult Put(string id, [FromBody] Customer customerUpdate)
         {
             if (customerUpdate == null)
-                return BadRequest();
-            if (!_context.Customers.Where(c => c.CustomerId == id).Any())
-                return BadRequest();
-            _context.Customers.Update(customerUpdate);
-            _context.SaveChanges();
+                return BadRequest("更新物件為空");
+            if (!_repository.IsIdExist(id))
+                return BadRequest("找不到物件");
+            _repository.Update(customerUpdate);
             return Ok("成功更新");
         }
 
@@ -81,11 +78,12 @@ namespace ApiDemo.Controllers
         {
             if (id == null)
                 return BadRequest();
-            var customer = _context.Customers.Find(id);
+            var customer = _repository.Get()
+                                      .Where(c => c.CustomerId == id)
+                                      .FirstOrDefault();
             if (customer == null)
                 return BadRequest();
-            _context.Customers.Remove(customer);
-            _context.SaveChanges();
+            _repository.Delete(customer);
             return Ok("成功刪除");
         }
     }
